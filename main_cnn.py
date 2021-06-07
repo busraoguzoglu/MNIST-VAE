@@ -128,15 +128,8 @@ def main():
         train(epoch, vae, train_loader, optimizer)
         test(vae, test_loader)
 
-    with torch.no_grad():
-        z = torch.randn(64, 2).cuda()
-        sample = vae.decoder(z).cuda()
-        save_image(sample.view(64, 1, 28, 28), './samples/sample_' + '.png')
-
     images, labels = iter(test_loader).next()
     sample_pic = images[0]
-
-    #sample_pic = test_dataset[4]
     plt.imshow(sample_pic[0].reshape(28, 28), cmap="gray")
     plt.show()
 
