@@ -62,7 +62,7 @@ class VAE(nn.Module):
         return out, mu, log_var
 
 def loss_function(recon_x, x, mu, log_var):
-    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
+    BCE = F.binary_cross_entropy(recon_x, x, reduction='sum')
     KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
     return BCE + KLD
 
@@ -150,4 +150,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
