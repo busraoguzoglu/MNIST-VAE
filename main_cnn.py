@@ -3,9 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
-from torch.autograd import Variable
-from torchvision.utils import save_image
-import numpy as np
 from matplotlib import pyplot as plt
 
 # Ref: https://github.com/lyeoni/pytorch-mnist-VAE/blob/master/pytorch-mnist-VAE.ipynb
@@ -124,17 +121,20 @@ def main():
     optimizer = optim.Adam(vae.parameters())
 
     # Training:
-    for epoch in range(1, 15):
+    for epoch in range(1, 2):
         train(epoch, vae, train_loader, optimizer)
         test(vae, test_loader)
 
     images, labels = iter(test_loader).next()
     sample_pic = images[0]
+    print(sample_pic.shape)
     plt.imshow(sample_pic[0].reshape(28, 28), cmap="gray")
     plt.show()
 
     with torch.no_grad():
         sample_pic = sample_pic.cuda()
+        sample_pic = sample_pic.unsqueeze(0)
+        print(sample_pic.shape)
         result = vae.forward(sample_pic)
         print('Got result')
         result = result[0].cpu()
