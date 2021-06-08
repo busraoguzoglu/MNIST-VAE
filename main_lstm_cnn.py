@@ -51,7 +51,9 @@ class VAE(nn.Module):
         #x = F.relu(self.encConv1(x))
         #x = F.relu(self.encConv2(x))
         #print(x.shape)
-        x = x.view(100, 28, 28)
+        dimension = x.shape[0]
+        #x = x.view(100, 28, 28)
+        x = x.view(dimension, 28, 28)
         #print(x.shape)
 
         hidden = self.hidden
@@ -178,20 +180,21 @@ def main():
         test(vae, test_loader)
 
     images, labels = iter(test_loader).next()
-    sample_pic = images[0]
-    print(sample_pic.shape)
-    plt.imshow(sample_pic[0].reshape(28, 28), cmap="gray")
+    sample_pics = images
+
+    # sample_pic = test_dataset[4]
+    plt.imshow(sample_pics[0].reshape(28, 28), cmap="gray")
     plt.show()
 
     with torch.no_grad():
-        sample_pic = sample_pic.cuda()
-        sample_pic = sample_pic.view(-1,784)
-        print(sample_pic.shape)
-        result = vae.forward(sample_pic)
+        sample_pics = sample_pics.cuda() # Need to be shape (1,1,28,28)
+        print('Pic shape:', sample_pics.shape)
+        result = vae.forward(sample_pics)
         print('Got result')
         result = result[0].cpu()
-        plt.imshow(result.reshape(28, 28), cmap="gray")
+        plt.imshow(result[0].reshape(28, 28), cmap="gray")
         plt.show()
+
 
 if __name__ == '__main__':
     main()
