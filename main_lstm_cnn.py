@@ -4,9 +4,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from matplotlib import pyplot as plt
+from torchvision.utils import save_image
 
 # Ref: https://github.com/lyeoni/pytorch-mnist-VAE/blob/master/pytorch-mnist-VAE.ipynb
 # Ref: https://towardsdatascience.com/building-a-convolutional-vae-in-pytorch-a0f54c947f71
+# Ref: https://blog.floydhub.com/long-short-term-memory-from-zero-to-hero-with-pytorch/
 
 class VAE(nn.Module):
     def __init__(self, imgChannels=1, featureDim=28*10, zDim=256):
@@ -175,15 +177,16 @@ def main():
     optimizer = optim.Adam(vae.parameters())
 
     # Training:
-    for epoch in range(1, 2):
+    for epoch in range(1, 5):
         train(epoch, vae, train_loader, optimizer)
         test(vae, test_loader)
 
     images, labels = iter(test_loader).next()
+    print('Inputs shape:', images.shape)
     sample_pics = images
 
     # sample_pic = test_dataset[4]
-    plt.imshow(sample_pics[0].reshape(28, 28), cmap="gray")
+    plt.imshow(sample_pics[12].reshape(28, 28), cmap="gray")
     plt.show()
 
     with torch.no_grad():
@@ -192,7 +195,28 @@ def main():
         result = vae.forward(sample_pics)
         print('Got result')
         result = result[0].cpu()
-        plt.imshow(result[0].reshape(28, 28), cmap="gray")
+        plt.imshow(result[12].reshape(28, 28), cmap="gray")
+        plt.show()
+
+    # Get randomized results:
+    images, labels = iter(test_loader).next()
+    print('Inputs shape:', images.shape)
+    sample_pics = torch.randn(images.shape)
+
+    # sample_pic = test_dataset[4]
+    plt.imshow(sample_pics[12].reshape(28, 28), cmap="gray")
+    plt.show()
+
+    with torch.no_grad():
+        sample_pics = sample_pics.cuda()  # Need to be shape (1,1,28,28)
+        print('Pic shape:', sample_pics.shape)
+        result = vae.forward(sample_pics)
+        print('Got result')
+        result = result[0].cpu()
+        plt.imshow(result[15].reshape(28, 28), cmap="gray")
+        plt.imshow(result[4].reshape(28, 28), cmap="gray")
+        plt.imshow(result[8].reshape(28, 28), cmap="gray")
+        plt.imshow(result[16].reshape(28, 28), cmap="gray")
         plt.show()
 
 
