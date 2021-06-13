@@ -45,9 +45,9 @@ class VAE(nn.Module):
         self.encFC1 = nn.Linear(featureDim, zDim)
         self.encFC2 = nn.Linear(featureDim, zDim)
 
-        # Initializing the fully-connected layer and 2 convolutional layers for decoder
-        self.decFC1 = nn.Linear(zDim, featureDim)
-        self.decConv1 = nn.ConvTranspose2d(280, imgChannels, kernel_size = 28, stride = 1)
+        # Initializing 2 convolutional layers for decoder
+        self.decConv1 = nn.ConvTranspose2d(256, 16, 1)
+        self.decConv2 = nn.ConvTranspose2d(16, imgChannels, 28)
 
     def encoder(self, x):
         dimension = x.shape[0]
@@ -78,12 +78,12 @@ class VAE(nn.Module):
         eps = torch.randn_like(std)
         return mu + std * eps
 
-    def decoder(self, z):
+    def decoder(self, x):
         # z is fed back into a fully-connected layers and then into two transpose convolutional layers
         # The generated output is the same size of the original input
-        x = F.relu(self.decFC1(z))
-        x = x.view(-1, 280, 1, 1)
-        x = torch.sigmoid(self.decConv1(x))
+        x = x.view(-1, 256, 1, 1)
+        x = F.relu(self.decConv1(x))
+        x = torch.sigmoid(self.decConv2(x))
         return x
 
     def forward(self, x):
@@ -182,7 +182,7 @@ def main():
     optimizer = optim.Adam(vae.parameters())
 
     # Training:
-    for epoch in range(1, 4):
+    for epoch in range(1, 5):
         train(epoch, vae, train_loader, optimizer)
         test(vae, test_loader)
 
