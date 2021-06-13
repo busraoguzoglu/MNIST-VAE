@@ -46,8 +46,8 @@ class VAE(nn.Module):
         self.encFC2 = nn.Linear(featureDim, zDim)
 
         # Initializing 2 convolutional layers for decoder
-        self.decConv1 = nn.ConvTranspose2d(256, 16, 1)
-        self.decConv2 = nn.ConvTranspose2d(16, imgChannels, 28)
+        self.decConv1 = nn.ConvTranspose2d(256, 16, 3, padding=1, stride=1)
+        self.decConv2 = nn.ConvTranspose2d(16, imgChannels, 28, padding=0, stride=1)
 
     def encoder(self, x):
         dimension = x.shape[0]
