@@ -45,41 +45,28 @@ class VAE(nn.Module):
         # Initializing the fully-connected layer and 2 convolutional layers for decoder
         self.decFC1 = nn.Linear(zDim, featureDim)
         self.decConv1 = nn.ConvTranspose2d(280, imgChannels, 28)
-        #self.decConv2 = nn.ConvTranspose2d(16, imgChannels, 5)
-
 
     def encoder(self, x):
-        # Input is fed into 2 convolutional layers sequentially
-        # The output feature map are fed into 2 fully-connected layers to predict mean (mu) and variance (logVar)
-        # Mu and logVar are used for generating middle representation z and KL divergence loss
-        #x = F.relu(self.encConv1(x))
-        #x = F.relu(self.encConv2(x))
-        #print(x.shape)
         dimension = x.shape[0]
-        #x = x.view(100, 28, 28)
         x = x.view(dimension, 28, 28)
-        #print(x.shape)
 
         hidden = self.hidden
-        if isinstance(hidden, tuple):
-            hidden = (hidden[0].cuda(), hidden[1].cuda())
-        else:
-            hidden = hidden.cuda()
-        x, hidden = self.lstm1(x, hidden)
 
+        # Check GPU:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        if device == 'cuda':
+            if isinstance(hidden, tuple):
+                hidden = (hidden[0].cuda(), hidden[1].cuda())
+            else:
+                hidden = hidden.cuda()
+
+        x, hidden = self.lstm1(x, hidden)
         self.hidden = hidden
-        #print("Output shape from LSTM: ", x.shape)
-        # Obtaining the last output
-        #x = x.squeeze()[-1, :]
-        #print("Last Output shape from LSTM: ", x.shape)
 
         # Arrange for linear
         x = x.reshape(100, 28*10)
-        #print("Shape for linear: ", x.shape)
         mu = self.encFC1(x)
-        #print("Shape of mu: ", mu.shape)
         logVar = self.encFC2(x)
-        #print("Shape of logVar: ", logVar.shape)
         return mu, logVar
 
     def sampling(self, mu, log_var):
@@ -121,7 +108,12 @@ def train(epoch, vae, train_loader, optimizer):
     train_bce = 0
     train_kld = 0
     for batch_idx, (data, _) in enumerate(train_loader):
-        data = data.cuda()
+
+        # Check GPU:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        if device == 'cuda':
+            data = data.cuda()
+
         optimizer.zero_grad()
 
         recon_batch, mu, log_var = vae(data)
@@ -186,7 +178,7 @@ def main():
     optimizer = optim.Adam(vae.parameters())
 
     # Training:
-    for epoch in range(1, 5):
+    for epoch in range(1, 3):
         train(epoch, vae, train_loader, optimizer)
         test(vae, test_loader)
 
