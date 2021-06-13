@@ -144,9 +144,14 @@ def train(epoch, vae, train_loader, optimizer):
 def test(vae, test_loader):
     vae.eval()
     test_loss = 0
+
+    # Check GPU:
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
     with torch.no_grad():
         for data, _ in test_loader:
-            data = data.cuda()
+            if device == 'cuda':
+                data = data.cuda()
             recon, mu, log_var = vae(data)
 
             # sum up batch loss
