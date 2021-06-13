@@ -19,11 +19,7 @@ class VAE(nn.Module):
     def __init__(self, imgChannels=1, featureDim=28*10, zDim=256):
         super(VAE, self).__init__()
 
-        # Initializing the 2 convolutional layers and 2 full-connected layers for the encoder
-        # self.encConv1 = nn.Conv2d(imgChannels, 16, 5)
-        # self.encConv2 = nn.Conv2d(16, 32, 5)
         # Input size = torch.Size([100, 1, 28, 28])
-
         # lstm_layer = nn.LSTM(input_dim, hidden_dim, n_layers, batch_first=True)
         # batch size, sequence length, input dimension -> Give input like this
         # 100, 28, 28 -> our dimension is 28 (one row) and we have 28 rows in a sequence.
@@ -46,8 +42,8 @@ class VAE(nn.Module):
         self.encFC2 = nn.Linear(featureDim, zDim)
 
         # Initializing 2 convolutional layers for decoder
-        self.decConv1 = nn.ConvTranspose2d(256, 16, 3, padding=1, stride=1)
-        self.decConv2 = nn.ConvTranspose2d(16, imgChannels, 28, padding=0, stride=1)
+        self.decConv1 = nn.ConvTranspose2d(256, 32, 3, padding=1, stride=1)
+        self.decConv2 = nn.ConvTranspose2d(32, imgChannels, 28, padding=0, stride=1)
 
     def encoder(self, x):
         dimension = x.shape[0]
@@ -69,8 +65,8 @@ class VAE(nn.Module):
         # Arrange for linear
         x = x.reshape(100, 28*10)
         mu = self.encFC1(x)
-        logVar = self.encFC2(x)
-        return mu, logVar
+        log_var = self.encFC2(x)
+        return mu, log_var
 
     def sampling(self, mu, log_var):
         # Reparameterization takes in the input mu and logVar and sample the mu + std * eps
@@ -106,8 +102,8 @@ def train(epoch, vae, train_loader, optimizer):
     train_loss = 0
     train_bce = 0
     train_kld = 0
-    for batch_idx, (data, _) in enumerate(train_loader):
 
+    for batch_idx, (data, _) in enumerate(train_loader):
         # Check GPU:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         if device == 'cuda':
@@ -138,6 +134,10 @@ def train(epoch, vae, train_loader, optimizer):
     print('====> Epoch: {} Average loss: {:.4f}'.format(epoch, train_loss / len(train_loader.dataset)))
     print('====> Epoch: {} Average BCE: {:.4f}'.format(epoch, train_bce / len(train_loader.dataset)))
     print('====> Epoch: {} Average KLD: {:.4f}'.format(epoch, train_kld / len(train_loader.dataset)))
+
+    return train_loss / len(train_loader.dataset)
+
+
 
 
 def test(vae, test_loader):
@@ -182,9 +182,15 @@ def main():
     optimizer = optim.Adam(vae.parameters())
 
     # Training:
-    for epoch in range(1, 5):
-        train(epoch, vae, train_loader, optimizer)
+    train_loss_to_plot = []
+    for epoch in range(1, 11):
+        train_loss = train(epoch, vae, train_loader, optimizer)
+        train_loss_to_plot.append(train_loss)
         test(vae, test_loader)
+
+    # show loss curve
+    plt.plot(train_loss_to_plot)
+    plt.show()
 
     images, labels = iter(test_loader).next()
     print('Inputs shape:', images.shape)
