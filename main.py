@@ -4,12 +4,15 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from matplotlib import pyplot as plt
-from torchvision.utils import save_image
 
 # Ref: https://github.com/lyeoni/pytorch-mnist-VAE/blob/master/pytorch-mnist-VAE.ipynb
 # Ref: https://towardsdatascience.com/building-a-convolutional-vae-in-pytorch-a0f54c947f71
 # Ref: https://blog.floydhub.com/long-short-term-memory-from-zero-to-hero-with-pytorch/
 # Ref: (To plot 100 result images) https://medium.com/the-data-science-publication/how-to-plot-mnist-digits-using-matplotlib-65a2e0cc068
+
+# To solve Intel related matplotlib/torch error.
+import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 
 class VAE(nn.Module):
@@ -44,7 +47,7 @@ class VAE(nn.Module):
 
         # Initializing the fully-connected layer and 2 convolutional layers for decoder
         self.decFC1 = nn.Linear(zDim, featureDim)
-        self.decConv1 = nn.ConvTranspose2d(280, imgChannels, 28)
+        self.decConv1 = nn.ConvTranspose2d(280, imgChannels, kernel_size = 28, stride = 1)
 
     def encoder(self, x):
         dimension = x.shape[0]
@@ -78,14 +81,9 @@ class VAE(nn.Module):
     def decoder(self, z):
         # z is fed back into a fully-connected layers and then into two transpose convolutional layers
         # The generated output is the same size of the original input
-        #print('Shape of z:', z.shape) # (100,256) is correct
         x = F.relu(self.decFC1(z))
-        #print('x shape', x.shape) # (100, 12800) vs (100, 280)
         x = x.view(-1, 280, 1, 1)
-        #print('x after view', x.shape) # ([100, 32, 20, 20]) vs ([100, 280, 1, 1])
-        #x = F.relu(self.decConv1(x))
         x = torch.sigmoid(self.decConv1(x))
-        #print('x after convolution', x.shape)
         return x
 
     def forward(self, x):
@@ -95,6 +93,7 @@ class VAE(nn.Module):
         z = self.sampling(mu, log_var)
         out = self.decoder(z)
         return out, mu, log_var
+
 
 def loss_function(recon_x, x, mu, log_var):
     BCE = F.binary_cross_entropy(recon_x, x, reduction='sum')
@@ -183,7 +182,7 @@ def main():
     optimizer = optim.Adam(vae.parameters())
 
     # Training:
-    for epoch in range(1, 3):
+    for epoch in range(1, 4):
         train(epoch, vae, train_loader, optimizer)
         test(vae, test_loader)
 
@@ -196,7 +195,9 @@ def main():
     plt.show()
 
     with torch.no_grad():
-        sample_pics = sample_pics.cuda() # Need to be shape (1,1,28,28)
+
+        if device == 'cuda':
+            sample_pics = sample_pics.cuda() # Need to be shape (1,1,28,28)
         print('Pic shape:', sample_pics.shape)
         result = vae.forward(sample_pics)
         print('Got result')
@@ -214,7 +215,9 @@ def main():
     plt.show()
 
     with torch.no_grad():
-        sample_pics = sample_pics.cuda()  # Need to be shape (1,1,28,28)
+
+        if device == 'cuda':
+            sample_pics = sample_pics.cuda()  # Need to be shape (1,1,28,28)
         print('Pic shape:', sample_pics.shape)
         result = vae.forward(sample_pics)
         print('Got result')
@@ -229,7 +232,7 @@ def main():
         for i in range(100):
             ax = axes[i // num_col, i % num_col]
             ax.imshow(result[i].reshape(28, 28), cmap='gray')
-            ax.set_title('Label: {}'.format(labels[i]))
+            # ax.set_title('Label: {}'.format(labels[i]))
         plt.tight_layout()
         plt.show()
 
