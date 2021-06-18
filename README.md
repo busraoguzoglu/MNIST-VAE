@@ -2,9 +2,9 @@
 
 Implementation of VAE, different versions are as follows:
 
-Linear: Encoder -> Linear | Decoder -> Linear (Ref:)
+Linear: Encoder -> Linear | Decoder -> Linear (Ref: https://github.com/lyeoni/pytorch-mnist-VAE/blob/master/pytorch-mnist-VAE.ipynb)
 
-CNN: Encoder -> CNN | Decoder -> CNN (Ref:)
+CNN: Encoder -> CNN | Decoder -> CNN (Ref: https://towardsdatascience.com/building-a-convolutional-vae-in-pytorch-a0f54c947f71)
 
 LSTM-CNN: Encoder -> LSTM | Decoder -> CNN (the main version, in the files main.py model.py and generator.py)
 
