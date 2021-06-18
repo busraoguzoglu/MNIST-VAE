@@ -29,7 +29,6 @@ class VAE(nn.Module):
         seq_len = 28
 
         self.lstm1 = nn.LSTM(input_dim, hidden_dim, n_layers, batch_first=True)
-
         self.hidden_state = torch.randn(n_layers, batch_size, hidden_dim)
         self.cell_state = torch.randn(n_layers, batch_size, hidden_dim)
         self.hidden = (self.hidden_state, self.cell_state)
@@ -38,7 +37,7 @@ class VAE(nn.Module):
         self.encFC1 = nn.Linear(featureDim, zDim)
         self.encFC2 = nn.Linear(featureDim, zDim)
 
-        # Initializing 2 convolutional layers for decoder
+        # Convolutional layers for decoder
         self.decConv1 = nn.ConvTranspose2d(256, 128, 5, padding=2, stride=1)
         self.conv1_bn = nn.BatchNorm2d(128)
         self.decConv2 = nn.ConvTranspose2d(128, 64, 3, padding=1, stride=1)

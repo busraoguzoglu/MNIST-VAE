@@ -60,9 +60,10 @@ def train(epoch, vae, train_loader, optimizer):
     print('====> Epoch: {} Average KLD: {:.4f}'.format(epoch, train_kld / len(train_loader.dataset)))
 
     loss = train_loss / len(train_loader.dataset)
-    kld = train_kld / len(train_loader.dataset)
-    bce = train_bce / len(train_loader.dataset)
-    return loss, kld, bce
+    return_kld = train_kld / len(train_loader.dataset)
+    return_bce = train_bce / len(train_loader.dataset)
+
+    return loss, return_kld.__float__(), return_bce.__float__()
 
 
 def test(vae, test_loader):
@@ -115,10 +116,11 @@ def main():
         train_loss_to_plot.append(train_loss)
         kl_div_to_plot.append(kld)
         bce_to_plot.append(bce)
+
         test(vae, test_loader)
 
     # Saving the trained model:
-    PATH = './vae_model_10epoch.pth'
+    PATH = './model_new.pth'
     torch.save(vae.state_dict(), PATH)
 
     # show loss curve

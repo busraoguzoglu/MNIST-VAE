@@ -22,7 +22,7 @@ def main():
     print(device)
 
     # Working directly from the saved model:
-    PATH = './vae_model.pth'
+    PATH = './model.pth'
     vae = VAE()
     if torch.cuda.is_available():
         vae.cuda()
