@@ -17,7 +17,8 @@ the sampling method and the forward function.
 Train function is not included in this file.
 Parameters regarding to network (number of layers and dimensions) can be changed
 from this file.
----------------------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------------------------------------
 main.py
 When this file is running:
 Datasets are loaded, they are downloaded if they do not exist in the file 'mnist_data'.
@@ -31,7 +32,8 @@ Third curve shows the change in BCE.
 After the training finishes, trained model is saved as model.pth file.
 Training function is called in main function, number of epochs can be changed from there.
 Can be used with CUDA if available.
-------------------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------------------------------------
 generator.py
 When this file is running:
 Model is loaded from the same directory, name of the file can be changed.
