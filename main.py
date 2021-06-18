@@ -1,9 +1,9 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from matplotlib import pyplot as plt
+from model import VAE
 
 # Ref: https://github.com/lyeoni/pytorch-mnist-VAE/blob/master/pytorch-mnist-VAE.ipynb
 # Ref: https://towardsdatascience.com/building-a-convolutional-vae-in-pytorch-a0f54c947f71
@@ -13,82 +13,6 @@ from matplotlib import pyplot as plt
 # To solve Intel related matplotlib/torch error.
 import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
-
-
-class VAE(nn.Module):
-    def __init__(self, imgChannels=1, featureDim=28*10, zDim=256):
-        super(VAE, self).__init__()
-
-        # Input size = torch.Size([100, 1, 28, 28])
-        # lstm_layer = nn.LSTM(input_dim, hidden_dim, n_layers, batch_first=True)
-        # batch size, sequence length, input dimension -> Give input like this
-        # 100, 28, 28 -> our dimension is 28 (one row) and we have 28 rows in a sequence.
-
-        # Variables for LSTM
-        input_dim = 28
-        hidden_dim = 10
-        n_layers = 1
-        batch_size = 100
-        seq_len = 28
-
-        self.lstm1 = nn.LSTM(input_dim, hidden_dim, n_layers, batch_first=True)
-
-        self.hidden_state = torch.randn(n_layers, batch_size, hidden_dim)
-        self.cell_state = torch.randn(n_layers, batch_size, hidden_dim)
-        self.hidden = (self.hidden_state, self.cell_state)
-
-        # Linear Layers
-        self.encFC1 = nn.Linear(featureDim, zDim)
-        self.encFC2 = nn.Linear(featureDim, zDim)
-
-        # Initializing 2 convolutional layers for decoder
-        self.decConv1 = nn.ConvTranspose2d(256, 32, 3, padding=1, stride=1)
-        self.decConv2 = nn.ConvTranspose2d(32, imgChannels, 28, padding=0, stride=1)
-
-    def encoder(self, x):
-        dimension = x.shape[0]
-        x = x.view(dimension, 28, 28)
-
-        hidden = self.hidden
-
-        # Check GPU:
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        if device == 'cuda':
-            if isinstance(hidden, tuple):
-                hidden = (hidden[0].cuda(), hidden[1].cuda())
-            else:
-                hidden = hidden.cuda()
-
-        x, hidden = self.lstm1(x, hidden)
-        self.hidden = hidden
-
-        # Arrange for linear
-        x = x.reshape(100, 28*10)
-        mu = self.encFC1(x)
-        log_var = self.encFC2(x)
-        return mu, log_var
-
-    def sampling(self, mu, log_var):
-        # Reparameterization takes in the input mu and logVar and sample the mu + std * eps
-        std = torch.exp(log_var / 2)
-        eps = torch.randn_like(std)
-        return mu + std * eps
-
-    def decoder(self, x):
-        # z is fed back into a fully-connected layers and then into two transpose convolutional layers
-        # The generated output is the same size of the original input
-        x = x.view(-1, 256, 1, 1)
-        x = F.relu(self.decConv1(x))
-        x = torch.sigmoid(self.decConv2(x))
-        return x
-
-    def forward(self, x):
-        # The entire pipeline of the VAE: encoder -> reparameterization -> decoder
-        # output, mu, and logVar are returned for loss computation
-        mu, log_var = self.encoder(x)
-        z = self.sampling(mu, log_var)
-        out = self.decoder(z)
-        return out, mu, log_var
 
 
 def loss_function(recon_x, x, mu, log_var):
@@ -135,9 +59,10 @@ def train(epoch, vae, train_loader, optimizer):
     print('====> Epoch: {} Average BCE: {:.4f}'.format(epoch, train_bce / len(train_loader.dataset)))
     print('====> Epoch: {} Average KLD: {:.4f}'.format(epoch, train_kld / len(train_loader.dataset)))
 
-    return train_loss / len(train_loader.dataset)
-
-
+    loss = train_loss / len(train_loader.dataset)
+    kld = train_kld / len(train_loader.dataset)
+    bce = train_bce / len(train_loader.dataset)
+    return loss, kld, bce
 
 
 def test(vae, test_loader):
@@ -160,9 +85,9 @@ def test(vae, test_loader):
     test_loss /= len(test_loader.dataset)
     print('====> Test set loss: {:.4f}'.format(test_loss))
 
+
 def main():
 
-    print('this is hw3')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(device)
 
@@ -183,65 +108,30 @@ def main():
 
     # Training:
     train_loss_to_plot = []
+    kl_div_to_plot = []
+    bce_to_plot = []
     for epoch in range(1, 11):
-        train_loss = train(epoch, vae, train_loader, optimizer)
+        train_loss, kld, bce = train(epoch, vae, train_loader, optimizer)
         train_loss_to_plot.append(train_loss)
+        kl_div_to_plot.append(kld)
+        bce_to_plot.append(bce)
         test(vae, test_loader)
+
+    # Saving the trained model:
+    PATH = './vae_model_10epoch.pth'
+    torch.save(vae.state_dict(), PATH)
 
     # show loss curve
     plt.plot(train_loss_to_plot)
     plt.show()
 
-    images, labels = iter(test_loader).next()
-    print('Inputs shape:', images.shape)
-    sample_pics = images
-
-    # sample_pic = test_dataset[4]
-    plt.imshow(sample_pics[12].reshape(28, 28), cmap="gray")
+    # show KL divergence curve
+    plt.plot(kl_div_to_plot)
     plt.show()
 
-    with torch.no_grad():
-
-        if device == 'cuda':
-            sample_pics = sample_pics.cuda() # Need to be shape (1,1,28,28)
-        print('Pic shape:', sample_pics.shape)
-        result = vae.forward(sample_pics)
-        print('Got result')
-        result = result[0].cpu()
-        plt.imshow(result[12].reshape(28, 28), cmap="gray")
-        plt.show()
-
-    # Get randomized results:
-    images, labels = iter(test_loader).next()
-    print('Inputs shape:', images.shape)
-    sample_pics = torch.randn(images.shape)
-
-    # sample_pic = test_dataset[4]
-    plt.imshow(sample_pics[12].reshape(28, 28), cmap="gray")
+    # show BCE curve
+    plt.plot(bce_to_plot)
     plt.show()
-
-    with torch.no_grad():
-
-        if device == 'cuda':
-            sample_pics = sample_pics.cuda()  # Need to be shape (1,1,28,28)
-        print('Pic shape:', sample_pics.shape)
-        result = vae.forward(sample_pics)
-        print('Got result')
-        result = result[0].cpu()
-        plt.imshow(result[15].reshape(28, 28), cmap="gray")
-        plt.show()
-
-        # Plotting:
-        num_row = 10
-        num_col = 10  # plot images
-        fig, axes = plt.subplots(num_row, num_col, figsize=(1.5 * num_col, 2 * num_row))
-        for i in range(100):
-            ax = axes[i // num_col, i % num_col]
-            ax.imshow(result[i].reshape(28, 28), cmap='gray')
-            # ax.set_title('Label: {}'.format(labels[i]))
-        plt.tight_layout()
-        plt.show()
-
 
 if __name__ == '__main__':
     main()
